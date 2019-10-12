@@ -6,3 +6,10 @@ pub trait IUserRepository {
     async fn list(&self) -> Result<Vec<model::User>, ()>;
     async fn save(&self, user: model::User) -> Result<(), ()>;
 }
+
+#[async_trait]
+pub trait IUserLoginRepository {
+    async fn get_by_user_name(&self, user_name: String) -> Result<model::Login, ()>;
+    async fn get_by_user_id(&self, user_id: String) -> Result<model::Login, ()>;
+    async fn save(&self, login: model::Login) -> Result<(), ()>;
+}

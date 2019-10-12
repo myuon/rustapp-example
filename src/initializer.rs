@@ -6,36 +6,36 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Infras {
-    pub ConnPool: connection_pool::MySQLConnPool,
+    pub conn_pool: connection_pool::MySQLConnPool,
 }
 
 pub fn infras(database_url: String) -> Infras {
     Infras {
-        ConnPool: connection_pool::MySQLConnPool::new(database_url),
+        conn_pool: connection_pool::MySQLConnPool::new(database_url),
     }
 }
 
 #[derive(Clone)]
 pub struct ServiceClients {
-    pub userRepository: Arc<dyn interface::IUserRepository + Send + Sync>,
+    pub user_repository: Arc<dyn interface::IUserRepository + Send + Sync>,
 }
 
 pub fn serviceclients(infras: &Infras) -> ServiceClients {
     ServiceClients {
-        userRepository: Arc::new(serviceclient::user_repo::UserRepository::new(
-            infras.ConnPool.clone(),
+        user_repository: Arc::new(serviceclient::user_repo::UserRepository::new(
+            infras.conn_pool.clone(),
         )),
     }
 }
 
 #[derive(Clone)]
 pub struct Services {
-    pub userService: service::UserService,
+    pub user_service: service::UserService,
 }
 
 pub fn services(serviceclients: &ServiceClients) -> Services {
     Services {
-        userService: service::UserService::new(serviceclients.userRepository.clone()),
+        user_service: service::UserService::new(serviceclients.user_repository.clone()),
     }
 }
 

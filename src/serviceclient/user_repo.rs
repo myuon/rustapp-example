@@ -57,7 +57,7 @@ impl crate::domain::interface::IUserRepository for UserRepository {
         Ok(us.into_iter().map(|r| r.to_model()).collect())
     }
 
-    async fn put(&self, user: model::User) -> Result<(), ()> {
+    async fn save(&self, user: model::User) -> Result<(), ()> {
         let conn = self.db.get_connection();
         insert_into(user_records::table)
             .values::<UserRecord>(UserRecord::from_model(user))

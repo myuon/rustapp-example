@@ -1,5 +1,4 @@
 use crate::async_await;
-use crate::infra::connection_pool::MySQLConnPool;
 use crate::initializer;
 use actix_http::Response;
 use actix_web::{web, HttpResponse};
@@ -19,7 +18,7 @@ pub fn handlers(cfg: &mut web::ServiceConfig) {
 }
 
 async fn api_list_users(context: web::Data<WebContext>) -> Result<HttpResponse, ()> {
-    Ok(Response::Ok().json(context.app.services.userService.list().await))
+    Ok(Response::Ok().json(context.app.services.user_service.list().await))
 }
 
 async fn api_create_user(
@@ -34,7 +33,7 @@ async fn api_create_user(
     let input = serde_json::from_slice::<crate::domain::service::UserCreateInput>(body.as_ref())
         .map_err(|_| ())?;
 
-    context.app.services.userService.create(input).await;
+    context.app.services.user_service.create(input).await;
 
     Ok(Response::Created().finish())
 }

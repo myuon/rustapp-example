@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct UserService {
-    userRepository: Arc<dyn IUserRepository + Sync + Send>,
+    user_repository: Arc<dyn IUserRepository + Sync + Send>,
 }
 
 #[derive(Deserialize)]
@@ -15,15 +15,24 @@ pub struct UserCreateInput {
 }
 
 impl UserService {
-    pub fn new(userRepository: Arc<dyn IUserRepository + Sync + Send>) -> UserService {
+    pub fn new(user_repository: Arc<dyn IUserRepository + Sync + Send>) -> UserService {
         UserService {
-            userRepository: userRepository,
+            user_repository: user_repository,
         }
     }
 
-    pub async fn create(&self, input: UserCreateInput) {}
+    pub async fn create(&self, input: UserCreateInput) {
+        self.user_repository
+            .save(model::User {
+                id: ulid::Ulid::new().to_string(),
+                name: input.name,
+                display_name: input.display_name,
+            })
+            .await
+            .unwrap()
+    }
 
     pub async fn list(&self) -> Vec<model::User> {
-        vec![]
+        self.user_repository.list().await.unwrap()
     }
 }

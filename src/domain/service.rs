@@ -27,6 +27,7 @@ impl UserService {
                 id: ulid::Ulid::new().to_string(),
                 name: input.name,
                 display_name: input.display_name,
+                role: model::Role::Unknown,
             })
             .await
             .unwrap()

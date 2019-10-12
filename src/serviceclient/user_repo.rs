@@ -20,6 +20,7 @@ impl UserRecord {
             id: self.id,
             name: self.name,
             display_name: self.display_name,
+            role: model::Role::Unknown,
         }
     }
 

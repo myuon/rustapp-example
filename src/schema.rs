@@ -1,9 +1,7 @@
-use diesel::*;
-
 table! {
-  user_records {
-    id -> VarChar,
-    name -> VarChar,
-    display_name -> VarChar,
-  }
+    user_records (id) {
+        id -> Varchar,
+        name -> Nullable<Varchar>,
+        display_name -> Nullable<Varchar>,
+    }
 }

@@ -11,6 +11,7 @@ table! {
         id -> Varchar,
         name -> Varchar,
         display_name -> Varchar,
+        role -> Nullable<Varchar>,
     }
 }
 

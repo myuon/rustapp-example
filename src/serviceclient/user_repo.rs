@@ -11,6 +11,7 @@ pub struct UserRecord {
     pub id: String,
     pub name: String,
     pub display_name: String,
+    pub role: Option<String>,
 }
 
 impl UserRecord {
@@ -27,6 +28,7 @@ impl UserRecord {
             id: user.id,
             name: user.name,
             display_name: user.display_name,
+            role: None,
         }
     }
 }

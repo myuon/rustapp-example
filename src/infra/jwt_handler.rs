@@ -3,12 +3,12 @@ use serde::*;
 
 #[derive(Clone)]
 pub struct JWTHandler {
-    private_key: String,
+    private_key: Vec<u8>,
     issuer: String,
 }
 
 impl JWTHandler {
-    pub fn new(private_key: String) -> JWTHandler {
+    pub fn new(private_key: Vec<u8>) -> JWTHandler {
         JWTHandler {
             private_key: private_key,
             issuer: "example.com".to_owned(),
@@ -18,10 +18,10 @@ impl JWTHandler {
 
 impl<Payload: Serialize + serde::de::DeserializeOwned> IJWTHandler<Payload> for JWTHandler {
     fn sign(&self, payload: Payload) -> Result<String, jsonwebtoken::errors::Error> {
-        jsonwebtoken::sign(
-            &serde_json::to_string(&payload)?,
-            self.private_key.as_bytes(),
-            jsonwebtoken::Algorithm::ES384,
+        jsonwebtoken::encode(
+            &jsonwebtoken::Header::new(jsonwebtoken::Algorithm::ES384),
+            &payload,
+            self.private_key.as_slice(),
         )
     }
 
@@ -29,6 +29,6 @@ impl<Payload: Serialize + serde::de::DeserializeOwned> IJWTHandler<Payload> for 
         let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::ES384);
         validation.iss = Some(self.issuer.clone());
 
-        Ok(jsonwebtoken::decode(jwt, self.private_key.as_bytes(), &validation)?.claims)
+        Ok(jsonwebtoken::decode(jwt, self.private_key.as_slice(), &validation)?.claims)
     }
 }

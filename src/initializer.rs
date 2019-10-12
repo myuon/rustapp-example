@@ -11,7 +11,7 @@ pub struct Infras {
     pub jwt_handler: Arc<infra::JWTHandler>,
 }
 
-pub fn infras(database_url: String, private_key: String) -> Infras {
+pub fn infras(database_url: String, private_key: Vec<u8>) -> Infras {
     Infras {
         conn_pool: infra::MySQLConnPool::new(database_url),
         hash_manager: Arc::new(infra::HashManager::new()),
@@ -60,7 +60,7 @@ pub struct AppContext {
     pub services: Services,
 }
 
-pub fn new(database_url: String, private_key: String) -> AppContext {
+pub fn new(database_url: String, private_key: Vec<u8>) -> AppContext {
     let i = infras(database_url, private_key);
     let sc = serviceclients(&i);
     let s = services(&i, &sc);

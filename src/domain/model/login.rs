@@ -10,9 +10,9 @@ pub enum LoginUserStatus {
 
 #[derive(Serialize, Deserialize)]
 pub struct Login {
-    user_id: String,
-    password_hash: String,
-    status: LoginUserStatus,
+    pub user_id: String,
+    pub password_hash: String,
+    pub status: LoginUserStatus,
 }
 
 #[test]

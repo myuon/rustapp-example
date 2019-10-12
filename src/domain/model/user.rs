@@ -23,6 +23,10 @@ impl Role {
             None => Role::Unknown,
         }
     }
+
+    pub fn as_string(&self) -> String {
+        serde_json::from_str(&serde_json::to_string(self).unwrap()).unwrap()
+    }
 }
 
 mod role_serde {
@@ -36,6 +40,12 @@ mod role_serde {
         let s = String::deserialize(deserializer)?;
         Ok(Role::new_from_str(&s))
     }
+}
+
+#[test]
+fn role_new_as_str_inverse() {
+    assert_eq!(Role::new_from_str(&Role::Admin.as_string()), Role::Admin);
+    assert_eq!(Role::new_from_str("admin").as_string(), "admin");
 }
 
 #[test]

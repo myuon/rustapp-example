@@ -20,7 +20,10 @@ impl UserRecord {
             id: self.id,
             name: self.name,
             display_name: self.display_name,
-            role: model::Role::Unknown,
+            role: self
+                .role
+                .map(|r| model::Role::new_from_str(&r))
+                .unwrap_or(model::Role::Unknown),
         }
     }
 
@@ -29,7 +32,7 @@ impl UserRecord {
             id: user.id,
             name: user.name,
             display_name: user.display_name,
-            role: None,
+            role: Some(user.role.as_string()),
         }
     }
 }

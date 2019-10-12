@@ -17,6 +17,12 @@ pub struct AuthenticateInput {
     password: String,
 }
 
+#[derive(Deserialize)]
+pub struct EnableUserWithPasswordInput {
+    user_id: String,
+    password: String,
+}
+
 impl LoginService {
     pub fn new(
         login_repository: Arc<dyn IUserLoginRepository + Sync + Send>,
@@ -30,7 +36,7 @@ impl LoginService {
         }
     }
 
-    async fn authenticateUser(
+    async fn authenticate_user(
         &self,
         input: AuthenticateInput,
     ) -> Result<model::User, ServiceError> {
@@ -53,10 +59,29 @@ impl LoginService {
     }
 
     pub async fn authenticate(&self, input: AuthenticateInput) -> Result<String, ServiceError> {
-        let user = self.authenticateUser(input).await?;
+        let user = self.authenticate_user(input).await?;
 
         self.jwt_handler.sign(user).map_err(|err| {
             ServiceError::InvalidRequest(Box::new(ServiceError::GeneralError(err.into())))
         })
+    }
+
+    pub async fn enable_user_with_password(
+        &self,
+        input: EnableUserWithPasswordInput,
+    ) -> Result<(), ServiceError> {
+        let mut login = self
+            .login_repository
+            .get_by_user_id(input.user_id)
+            .await
+            .map_err(ServiceError::DBError)?;
+        login.password_hash = self.hash_manager.hash(input.password).to_string();
+        login.status = model::LoginUserStatus::Enabled;
+        self.login_repository
+            .save(login)
+            .await
+            .map_err(ServiceError::DBError)?;
+
+        Ok(())
     }
 }

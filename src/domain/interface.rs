@@ -3,6 +3,7 @@ use async_trait::async_trait;
 
 #[async_trait]
 pub trait IUserRepository {
+    async fn get_by_id(&self, user_id: String) -> Result<model::User, diesel::result::Error>;
     async fn list(&self) -> Result<Vec<model::User>, diesel::result::Error>;
     async fn save(&self, user: model::User) -> Result<(), diesel::result::Error>;
 }

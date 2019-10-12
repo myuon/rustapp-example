@@ -61,4 +61,13 @@ impl crate::domain::interface::IUserRepository for UserRepository {
 
         Ok(())
     }
+
+    async fn get_by_id(&self, user_id: String) -> Result<model::User, diesel::result::Error> {
+        let conn = self.db.get_connection();
+        let user = user_records::table
+            .filter(user_records::id.eq(user_id))
+            .first::<UserRecord>(&conn)?;
+
+        Ok(user.to_model())
+    }
 }

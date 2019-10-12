@@ -18,6 +18,10 @@ pub fn handlers(cfg: &mut web::ServiceConfig) {
     .service(
         web::resource("/auth/login")
             .route(web::post().to_async(async_await::wrap2(api_auth_login))),
+    )
+    .service(
+        web::resource("/private/login/{user_id}")
+            .route(web::put().to_async(async_await::wrap2(private_api_enable_user_with_password))),
     );
 }
 
@@ -59,6 +63,31 @@ async fn api_auth_login(
         .services
         .login_service
         .authenticate(input)
+        .await
+        .map_err(|e| e.to_http_error())?;
+
+    Ok(Response::Ok().json(res))
+}
+
+async fn private_api_enable_user_with_password(
+    payload: web::Payload,
+    context: web::Data<WebContext>,
+) -> Result<HttpResponse, error::Error> {
+    let body = Box::new(
+        futures::compat::Compat01As03::new(payload.concat2())
+            .await
+            .map_err(error::ErrorBadRequest)?,
+    );
+    let input = serde_json::from_slice::<crate::domain::service::EnableUserWithPasswordInput>(
+        body.as_ref(),
+    )
+    .map_err(error::ErrorBadRequest)?;
+
+    let res = context
+        .app
+        .services
+        .login_service
+        .enable_user_with_password(input)
         .await
         .map_err(|e| e.to_http_error())?;
 

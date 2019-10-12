@@ -83,4 +83,10 @@ impl LoginService {
 
         Ok(())
     }
+
+    pub async fn authorize(&self, token: String) -> Result<model::User, ServiceError> {
+        self.jwt_handler.verify(&token).map_err(|err| {
+            ServiceError::InvalidRequest(Box::new(ServiceError::GeneralError(err.into())))
+        })
+    }
 }

@@ -1,4 +1,6 @@
 use crate::async_await;
+use crate::domain::model;
+use crate::error::ServiceError;
 use crate::initializer;
 use actix_http::Response;
 use actix_web::{error, web, HttpResponse};
@@ -9,11 +11,48 @@ pub struct WebContext {
     pub app: initializer::AppContext,
 }
 
+impl WebContext {
+    fn auth_token(req: web::HttpRequest) -> Option<String> {
+        req.headers()
+            .get("Authorization")
+            .and_then(|v| v.to_str().ok())
+            .map(|v| v.to_owned())
+    }
+
+    async fn authorize(
+        &self,
+        req: web::HttpRequest,
+        validate_user_role: Option<model::Role>,
+    ) -> Result<model::User, error::Error> {
+        let token = WebContext::auth_token(req)
+            .ok_or(ServiceError::Unauthorized(failure::err_msg("Empty token")).to_http_error())?;
+
+        let user = self
+            .app
+            .services
+            .login_service
+            .authorize(token)
+            .await
+            .map_err(|e| e.to_http_error())?;
+
+        if let Some(check_role) = validate_user_role {
+            if user.role < check_role {
+                return Err(
+                    ServiceError::Unauthorized(failure::err_msg("Role is not enough"))
+                        .to_http_error(),
+                );
+            }
+        }
+
+        Ok(user)
+    }
+}
+
 pub fn handlers(cfg: &mut web::ServiceConfig) {
     cfg.service(
-        web::resource("/users")
-            .route(web::get().to_async(async_await::wrap(api_list_users)))
-            .route(web::post().to_async(async_await::wrap2(api_create_user))),
+        web::resource("/admin/users")
+            .route(web::get().to_async(async_await::wrap2(api_list_users)))
+            .route(web::post().to_async(async_await::wrap3(api_create_user))),
     )
     .service(
         web::resource("/auth/login")
@@ -25,7 +64,15 @@ pub fn handlers(cfg: &mut web::ServiceConfig) {
     );
 }
 
-async fn api_list_users(context: web::Data<WebContext>) -> Result<HttpResponse, error::Error> {
+async fn api_list_users(
+    context: web::Data<WebContext>,
+    req: web::HttpRequest,
+) -> Result<HttpResponse, error::Error> {
+    context
+        .get_ref()
+        .authorize(req, Some(model::Role::PowerUser))
+        .await?;
+
     let res = context
         .app
         .services
@@ -40,7 +87,13 @@ async fn api_list_users(context: web::Data<WebContext>) -> Result<HttpResponse, 
 async fn api_create_user(
     payload: web::Payload,
     context: web::Data<WebContext>,
+    req: web::HttpRequest,
 ) -> Result<HttpResponse, error::Error> {
+    context
+        .get_ref()
+        .authorize(req, Some(model::Role::Admin))
+        .await?;
+
     let body = Box::new(
         futures::compat::Compat01As03::new(payload.concat2())
             .await

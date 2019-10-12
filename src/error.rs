@@ -9,10 +9,13 @@ pub enum ServiceError {
     #[fail(display = "{}", _0)]
     GeneralError(failure::Error),
 
+    #[fail(display = "Unauthorized: {}", _0)]
+    Unauthorized(failure::Error),
+
     #[fail(display = "Invalid request: {}", _0)]
     InvalidRequest(Box<ServiceError>),
 
-    #[fail(display = "Invalid request: {}", _0)]
+    #[fail(display = "Internal Server Error: {}", _0)]
     InternalServerError(Box<ServiceError>),
 }
 
@@ -23,6 +26,7 @@ impl ServiceError {
         match self {
             InvalidRequest(err) => actix_web::error::ErrorBadRequest(err),
             InternalServerError(err) => actix_web::error::ErrorInternalServerError(err),
+            Unauthorized(err) => actix_web::error::ErrorUnauthorized(err),
             err => actix_web::error::ErrorInternalServerError(err),
         }
     }

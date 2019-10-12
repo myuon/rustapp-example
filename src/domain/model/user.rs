@@ -4,13 +4,13 @@ use serde::*;
 // using deriving automation to deserialize string representation
 //
 // Do not forget to add #[serde(deserialize_with = "role_serde::deserialize")]
-#[derive(PartialEq, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, PartialOrd, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Role {
-    Admin,
-    PowerUser,
-    User,
     Unknown,
+    User,
+    PowerUser,
+    Admin,
 }
 
 impl Role {
@@ -36,6 +36,22 @@ mod role_serde {
         let s = String::deserialize(deserializer)?;
         Ok(Role::new_from_str(&s))
     }
+}
+
+#[test]
+fn admin_should_stronger_than_all_other_role() {
+    use Role::*;
+    assert!(Admin >= Unknown);
+    assert!(Admin >= User);
+    assert!(Admin >= PowerUser);
+}
+
+#[test]
+fn unknown_should_weaker_than_all_other_role() {
+    use Role::*;
+    assert!(Unknown <= User);
+    assert!(Unknown <= PowerUser);
+    assert!(Unknown <= Admin);
 }
 
 #[derive(Serialize, Deserialize)]

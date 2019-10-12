@@ -70,13 +70,12 @@ impl LoginService {
         &self,
         input: EnableUserWithPasswordInput,
     ) -> Result<(), ServiceError> {
-        let mut login = self
-            .login_repository
-            .get_by_user_id(input.user_id)
-            .await
-            .map_err(ServiceError::DBError)?;
-        login.password_hash = self.hash_manager.hash(input.password).to_string();
-        login.status = model::LoginUserStatus::Enabled;
+        let login = model::Login {
+            user_id: input.user_id,
+            password_hash: self.hash_manager.hash(input.password).to_string(),
+            status: model::LoginUserStatus::Enabled,
+        };
+
         self.login_repository
             .save(login)
             .await

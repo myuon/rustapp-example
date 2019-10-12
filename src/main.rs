@@ -14,9 +14,6 @@ mod async_await;
 
 use dotenv::dotenv;
 use std::env;
-use std::sync::Arc;
-
-type Pool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::mysql::MysqlConnection>>;
 
 fn main() -> std::io::Result<()> {
     dotenv().ok();
@@ -25,12 +22,7 @@ fn main() -> std::io::Result<()> {
     actix_web::HttpServer::new(move || {
         actix_web::App::new()
             .data(web::WebContext {
-                app: initializer::Initializer {
-                    infras: initializer::infras(),
-                    serviceclients: initializer::serviceclients(),
-                    services: initializer::services(),
-                },
-                db: infra::connection_pool::MySQLConnPool::new(database_url.clone()),
+                app: initializer::new(database_url.clone()),
             })
             .configure(web::handlers)
     })

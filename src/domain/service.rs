@@ -15,6 +15,12 @@ pub struct UserCreateInput {
 }
 
 impl UserService {
+    pub fn new(userRepository: Arc<dyn IUserRepository + Sync + Send>) -> UserService {
+        UserService {
+            userRepository: userRepository,
+        }
+    }
+
     pub async fn create(&self, input: UserCreateInput) {}
 
     pub async fn list(&self) -> Vec<model::User> {

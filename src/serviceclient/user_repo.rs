@@ -43,7 +43,7 @@ pub struct UserRepository {
 }
 
 impl UserRepository {
-    fn new(db: MySQLConnPool) -> UserRepository {
+    pub fn new(db: MySQLConnPool) -> UserRepository {
         UserRepository { db: db }
     }
 }

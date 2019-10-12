@@ -7,8 +7,7 @@ use futures01::stream::Stream;
 
 #[derive(Clone)]
 pub struct WebContext {
-    pub db: MySQLConnPool,
-    pub app: initializer::Initializer,
+    pub app: initializer::AppContext,
 }
 
 pub fn handlers(cfg: &mut web::ServiceConfig) {

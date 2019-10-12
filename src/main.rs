@@ -21,7 +21,9 @@ use std::env;
 fn main() -> std::io::Result<()> {
     dotenv().ok();
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL not found");
-    let private_key = env::var("JWT_PRIVATE_KEY").expect("JWT_PRIVATE_KEY not found");
+    let private_key_file =
+        env::var("JWT_PRIVATE_KEY_FILE").expect("JWT_PRIVATE_KEY_FILE not found");
+    let private_key = std::fs::read_to_string(private_key_file)?;
 
     actix_web::HttpServer::new(move || {
         actix_web::App::new()

@@ -25,8 +25,16 @@ pub fn handlers(cfg: &mut web::ServiceConfig) {
     );
 }
 
-async fn api_list_users(context: web::Data<WebContext>) -> Result<HttpResponse, ()> {
-    Ok(Response::Ok().json(context.app.services.user_service.list().await))
+async fn api_list_users(context: web::Data<WebContext>) -> Result<HttpResponse, error::Error> {
+    let res = context
+        .app
+        .services
+        .user_service
+        .list()
+        .await
+        .map_err(|e| e.to_http_error())?;
+
+    Ok(Response::Ok().json(res))
 }
 
 async fn api_create_user(
@@ -41,7 +49,13 @@ async fn api_create_user(
     let input = serde_json::from_slice::<crate::domain::service::UserCreateInput>(body.as_ref())
         .map_err(error::ErrorBadRequest)?;
 
-    context.app.services.user_service.create(input).await;
+    context
+        .app
+        .services
+        .user_service
+        .create(input)
+        .await
+        .map_err(|e| e.to_http_error())?;
 
     Ok(Response::Created().finish())
 }

@@ -1,17 +1,10 @@
 use crate::domain::model;
 use crate::infra::connection_pool::MySQLConnPool;
+use crate::schema::*;
 use async_trait::async_trait;
 use diesel::dsl::*;
 use diesel::prelude::*;
 use serde::*;
-
-table! {
-    user_records {
-        id -> VarChar,
-        name -> VarChar,
-        display_name -> VarChar,
-    }
-}
 
 #[derive(Queryable, Insertable, Serialize, Deserialize)]
 pub struct UserRecord {

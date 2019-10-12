@@ -2,6 +2,8 @@
 
 #[macro_use]
 extern crate diesel;
+#[macro_use]
+extern crate failure;
 
 mod domain;
 mod infra;
@@ -11,6 +13,7 @@ mod serviceclient;
 mod web;
 
 mod async_await;
+mod error;
 
 use dotenv::dotenv;
 use std::env;
@@ -18,11 +21,12 @@ use std::env;
 fn main() -> std::io::Result<()> {
     dotenv().ok();
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL not found");
+    let private_key = env::var("JWT_PRIVATE_KEY").expect("JWT_PRIVATE_KEY not found");
 
     actix_web::HttpServer::new(move || {
         actix_web::App::new()
             .data(web::WebContext {
-                app: initializer::new(database_url.clone()),
+                app: initializer::new(database_url.clone(), private_key.clone()),
             })
             .configure(web::handlers)
     })

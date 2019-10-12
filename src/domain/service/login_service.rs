@@ -1,5 +1,6 @@
 use crate::domain::interface::{Hash, IHashManager, IJWTHandler, IUserLoginRepository};
 use crate::domain::model;
+use crate::error::ServiceError;
 use serde::*;
 use std::sync::Arc;
 
@@ -32,30 +33,30 @@ impl LoginService {
     async fn authenticateUser(
         &self,
         input: AuthenticateInput,
-    ) -> Result<model::User, diesel::result::Error> {
+    ) -> Result<model::User, ServiceError> {
         let (login, user) = self
             .login_repository
             .get_by_user_name(input.user_name)
-            .await?;
+            .await
+            .map_err(ServiceError::DBError)?;
 
         if !self
             .hash_manager
             .verify(Hash::from_string(login.password_hash), input.password)
         {
-            // return Err();
-            unimplemented!()
+            return Err(ServiceError::InvalidRequest(Box::new(
+                ServiceError::GeneralError(failure::err_msg("invalid password")),
+            )));
         }
 
         Ok(user)
     }
 
-    pub async fn authenticate(
-        &self,
-        input: AuthenticateInput,
-    ) -> Result<String, diesel::result::Error> {
+    pub async fn authenticate(&self, input: AuthenticateInput) -> Result<String, ServiceError> {
         let user = self.authenticateUser(input).await?;
 
-        // self.jwt_handler.sign(user)?
-        unimplemented!()
+        self.jwt_handler.sign(user).map_err(|err| {
+            ServiceError::InvalidRequest(Box::new(ServiceError::GeneralError(err.into())))
+        })
     }
 }

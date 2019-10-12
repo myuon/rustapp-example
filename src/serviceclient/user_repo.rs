@@ -1,5 +1,5 @@
 use crate::domain::model;
-use crate::infra::connection_pool::MySQLConnPool;
+use crate::infra::MySQLConnPool;
 use crate::schema::*;
 use async_trait::async_trait;
 use diesel::dsl::*;

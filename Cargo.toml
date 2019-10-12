@@ -19,6 +19,7 @@ async-trait = "0.1.13"
 actix-service = "0.4.2"
 bcrypt = "0.6.0"
 jsonwebtoken = "6.0.1"
+failure = "0.1.6"
 
 [dependencies.diesel]
 features = ["mysql", "r2d2"]

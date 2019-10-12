@@ -1,6 +1,7 @@
 use crate::domain::interface::IJWTHandler;
 use serde::*;
 
+#[derive(Clone)]
 pub struct JWTHandler {
     private_key: String,
     issuer: String,

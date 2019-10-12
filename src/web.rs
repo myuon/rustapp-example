@@ -14,6 +14,10 @@ pub fn handlers(cfg: &mut web::ServiceConfig) {
         web::resource("/users")
             .route(web::get().to_async(async_await::wrap(api_list_users)))
             .route(web::post().to_async(async_await::wrap2(api_create_user))),
+    )
+    .service(
+        web::resource("/auth/login")
+            .route(web::post().to_async(async_await::wrap2(api_auth_login))),
     );
 }
 
@@ -36,4 +40,27 @@ async fn api_create_user(
     context.app.services.user_service.create(input).await;
 
     Ok(Response::Created().finish())
+}
+
+async fn api_auth_login(
+    payload: web::Payload,
+    context: web::Data<WebContext>,
+) -> Result<HttpResponse, error::Error> {
+    let body = Box::new(
+        futures::compat::Compat01As03::new(payload.concat2())
+            .await
+            .map_err(error::ErrorBadRequest)?,
+    );
+    let input = serde_json::from_slice::<crate::domain::service::AuthenticateInput>(body.as_ref())
+        .map_err(error::ErrorBadRequest)?;
+
+    let res = context
+        .app
+        .services
+        .login_service
+        .authenticate(input)
+        .await
+        .map_err(|e| e.to_http_error())?;
+
+    Ok(Response::Ok().json(res))
 }

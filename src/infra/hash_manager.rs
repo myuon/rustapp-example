@@ -1,9 +1,10 @@
 use crate::domain::interface;
 
+#[derive(Clone)]
 pub struct HashManager;
 
 impl HashManager {
-    fn new() -> HashManager {
+    pub fn new() -> HashManager {
         HashManager
     }
 }

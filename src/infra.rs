@@ -1,3 +1,7 @@
-pub mod connection_pool;
-pub mod hash_manager;
-pub mod jwt_handler;
+mod connection_pool;
+mod hash_manager;
+mod jwt_handler;
+
+pub use connection_pool::*;
+pub use hash_manager::*;
+pub use jwt_handler::*;

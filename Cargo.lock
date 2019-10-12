@@ -259,6 +259,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-trait"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "proc-macro2 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quote 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "autocfg"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1474,7 +1484,9 @@ name = "rustapp-example"
 version = "0.1.0"
 dependencies = [
  "actix-http 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "actix-service 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-web 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "async-trait 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "diesel 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "dotenv 0.14.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures-preview 0.3.0-alpha.19 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2027,6 +2039,7 @@ dependencies = [
 "checksum aho-corasick 0.7.6 (registry+https://github.com/rust-lang/crates.io-index)" = "58fb5e95d83b38284460a5fda7d6470aa0b8844d283a0b614b8535e880800d2d"
 "checksum arc-swap 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "f1a1eca3195b729bbd64e292ef2f5fff6b1c28504fed762ce2b1013dde4d8e92"
 "checksum arrayvec 0.4.12 (registry+https://github.com/rust-lang/crates.io-index)" = "cd9fd44efafa8690358b7408d253adf110036b88f55672a933f01d616ad9b1b9"
+"checksum async-trait 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)" = "6f1418cdc602e31e3ffeea57d8481b8c5db895e733028c2552a06d5cf36beb91"
 "checksum autocfg 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "b671c8fb71b457dd4ae18c4ba1e59aa81793daacc361d82fcd410cef0d491875"
 "checksum awc 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)" = "364537de6ac9f996780f9dd097d6c4ca7c91dd5735153e9fb545037479becd10"
 "checksum backtrace 0.3.38 (registry+https://github.com/rust-lang/crates.io-index)" = "690a62be8920ccf773ee00ef0968649b0e724cda8bd5b12286302b4ae955fdf5"

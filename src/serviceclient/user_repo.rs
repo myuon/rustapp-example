@@ -15,7 +15,7 @@ pub struct UserRecord {
 }
 
 impl UserRecord {
-    fn to_model(self) -> model::User {
+    pub fn to_model(self) -> model::User {
         model::User {
             id: self.id,
             name: self.name,
@@ -24,7 +24,7 @@ impl UserRecord {
         }
     }
 
-    fn from_model(user: model::User) -> Self {
+    pub fn from_model(user: model::User) -> Self {
         UserRecord {
             id: user.id,
             name: user.name,

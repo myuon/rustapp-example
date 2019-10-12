@@ -12,7 +12,29 @@ pub trait IUserLoginRepository {
     async fn get_by_user_name(
         &self,
         user_name: String,
-    ) -> Result<model::Login, diesel::result::Error>;
+    ) -> Result<(model::Login, model::User), diesel::result::Error>;
     async fn get_by_user_id(&self, user_id: String) -> Result<model::Login, diesel::result::Error>;
     async fn save(&self, login: model::Login) -> Result<(), diesel::result::Error>;
+}
+
+pub struct Hash(String);
+
+impl Hash {
+    pub fn from_string(s: String) -> Hash {
+        Hash(s)
+    }
+
+    pub fn to_string(self) -> String {
+        self.0
+    }
+}
+
+pub trait IHashManager {
+    fn hash(&self, raw: String) -> Hash;
+    fn verify(&self, hash: Hash, raw: String) -> bool;
+}
+
+pub trait IJWTHandler<Payload> {
+    fn sign(&self, payload: Payload) -> Result<String, jsonwebtoken::errors::Error>;
+    fn verify(&self, jwt: &str) -> Result<Payload, jsonwebtoken::errors::Error>;
 }

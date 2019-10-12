@@ -59,14 +59,14 @@ impl interface::IUserLoginRepository for UserLoginRepository {
     async fn get_by_user_name(
         &self,
         user_name: String,
-    ) -> Result<model::Login, diesel::result::Error> {
+    ) -> Result<(model::Login, model::User), diesel::result::Error> {
         let conn = self.db.get_connection();
-        let (_, record) = user_records::table
+        let (user, login) = user_records::table
             .inner_join(user_login_records::table)
             .filter(user_records::name.eq(user_name))
             .first::<(super::user_repo::UserRecord, UserLoginRecord)>(&conn)?;
 
-        Ok(record.to_model())
+        Ok((login.to_model(), user.to_model()))
     }
 
     async fn get_by_user_id(&self, user_id: String) -> Result<model::Login, diesel::result::Error> {

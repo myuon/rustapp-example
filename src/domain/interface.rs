@@ -36,6 +36,6 @@ pub trait IHashManager {
 }
 
 pub trait IJWTHandler<Payload> {
-    fn sign(&self, payload: Payload) -> Result<String, jsonwebtoken::errors::Error>;
-    fn verify(&self, jwt: &str) -> Result<Payload, jsonwebtoken::errors::Error>;
+    fn sign(&self, payload: Payload) -> Result<String, biscuit::errors::Error>;
+    fn verify(&self, jwt: &str) -> Result<Payload, frank_jwt::Error>;
 }

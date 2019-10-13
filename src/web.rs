@@ -26,12 +26,18 @@ impl WebContext {
     ) -> Result<model::User, error::Error> {
         let token = WebContext::auth_token(req)
             .ok_or(ServiceError::Unauthorized(failure::err_msg("Empty token")).to_http_error())?;
+        let stoken = token.split("Bearer ").collect::<Vec<&str>>();
+        if stoken.len() != 2 {
+            return Err(
+                ServiceError::Unauthorized(failure::err_msg("Invalid token")).to_http_error(),
+            );
+        }
 
         let user = self
             .app
             .services
             .login_service
-            .authorize(token)
+            .authorize(stoken[1].to_owned())
             .await
             .map_err(|e| e.to_http_error())?;
 

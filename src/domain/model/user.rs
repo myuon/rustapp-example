@@ -4,7 +4,7 @@ use serde::*;
 // using deriving automation to deserialize string representation
 //
 // Do not forget to add #[serde(deserialize_with = "role_serde::deserialize")]
-#[derive(PartialEq, PartialOrd, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, PartialOrd, Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum Role {
     Unknown,
@@ -64,7 +64,7 @@ fn unknown_should_weaker_than_all_other_role() {
     assert!(Unknown <= Admin);
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct User {
     pub id: String,
     pub name: String,

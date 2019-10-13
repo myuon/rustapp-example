@@ -28,7 +28,7 @@ impl JWTHandler {
     pub fn new(private_key_file: &str) -> JWTHandler {
         let private = biscuit::jws::Secret::ecdsa_keypair_from_file(
             biscuit::jwa::SignatureAlgorithm::ES384,
-            "key/secp384r1.priv.key",
+            private_key_file,
         )
         .unwrap();
         let public = from_private(&private);

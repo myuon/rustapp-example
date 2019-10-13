@@ -1,7 +1,8 @@
 use crate::domain::interface::IJWTHandler;
 use serde::*;
+use std::sync::Arc;
 
-fn from_private(key: biscuit::jws::Secret) -> biscuit::jws::Secret {
+fn from_private(key: &biscuit::jws::Secret) -> biscuit::jws::Secret {
     match key {
         biscuit::jws::Secret::EcdsaKeyPair(p) => biscuit::jws::Secret::PublicKey(
             ring::signature::KeyPair::public_key(p.as_ref())
@@ -12,18 +13,31 @@ fn from_private(key: biscuit::jws::Secret) -> biscuit::jws::Secret {
     }
 }
 
+struct KeyPair {
+    public: biscuit::jws::Secret,
+    private: biscuit::jws::Secret,
+}
+
 #[derive(Clone)]
 pub struct JWTHandler {
-    private_key: Vec<u8>,
-    public_key: Vec<u8>,
+    keypair: Arc<KeyPair>,
     issuer: String,
 }
 
 impl JWTHandler {
-    pub fn new(private_key: Vec<u8>, public_key: Vec<u8>) -> JWTHandler {
+    pub fn new(private_key_file: &str) -> JWTHandler {
+        let private = biscuit::jws::Secret::ecdsa_keypair_from_file(
+            biscuit::jwa::SignatureAlgorithm::ES384,
+            "key/secp384r1.priv.key",
+        )
+        .unwrap();
+        let public = from_private(&private);
+
         JWTHandler {
-            private_key: private_key,
-            public_key: public_key,
+            keypair: Arc::new(KeyPair {
+                private: private,
+                public: public,
+            }),
             issuer: "example.com".to_owned(),
         }
     }
@@ -31,10 +45,6 @@ impl JWTHandler {
 
 impl<Payload: Serialize + serde::de::DeserializeOwned + Clone> IJWTHandler<Payload> for JWTHandler {
     fn sign(&self, payload: Payload) -> Result<String, biscuit::errors::Error> {
-        let key = biscuit::jws::Secret::ecdsa_keypair_from_file(
-            biscuit::jwa::SignatureAlgorithm::ES384,
-            "key/secp384r1.priv.key",
-        )?;
         let jwt = biscuit::JWT::new_decoded(
             From::from(biscuit::jws::Header::from_registered_header(
                 biscuit::jws::RegisteredHeader {
@@ -47,26 +57,22 @@ impl<Payload: Serialize + serde::de::DeserializeOwned + Clone> IJWTHandler<Paylo
                 registered: std::default::Default::default(),
             },
         );
-        let token = jwt.into_encoded(&key)?.unwrap_encoded().to_string();
-        warn!("{:?}", token);
+        let token = jwt
+            .into_encoded(&self.keypair.private)?
+            .unwrap_encoded()
+            .to_string();
 
         Ok(token)
     }
 
-    fn verify(&self, jwt: &str) -> Result<Payload, frank_jwt::Error> {
-        let key = from_private(
-            biscuit::jws::Secret::ecdsa_keypair_from_file(
-                biscuit::jwa::SignatureAlgorithm::ES384,
-                "key/secp384r1.priv.key",
-            )
-            .unwrap(),
-        );
+    fn verify(&self, jwt: &str) -> Result<Payload, biscuit::errors::Error> {
         let bjwt: biscuit::JWT<Payload, biscuit::Empty> = biscuit::JWT::new_encoded(jwt);
-        let bjwt = bjwt
-            .into_decoded(&key, biscuit::jwa::SignatureAlgorithm::ES384)
-            .unwrap();
-        bjwt.validate(std::default::Default::default()).unwrap();
+        let bjwt = bjwt.into_decoded(
+            &self.keypair.public,
+            biscuit::jwa::SignatureAlgorithm::ES384,
+        )?;
+        bjwt.validate(std::default::Default::default())?;
 
-        Ok(bjwt.payload().unwrap().private.clone())
+        Ok(bjwt.payload()?.private.clone())
     }
 }

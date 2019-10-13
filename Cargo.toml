@@ -21,10 +21,7 @@ bcrypt = "0.6.0"
 failure = "0.1.6"
 env_logger = "0.7.0"
 log = "0.4.8"
-frank_jwt = "3.1.1"
 biscuit = "0.3.1"
-yasna = "0.3.1"
-pem = "0.6.1"
 ring = "0.16.9"
 
 [dependencies.diesel]

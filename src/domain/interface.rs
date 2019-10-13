@@ -37,5 +37,5 @@ pub trait IHashManager {
 
 pub trait IJWTHandler<Payload> {
     fn sign(&self, payload: Payload) -> Result<String, biscuit::errors::Error>;
-    fn verify(&self, jwt: &str) -> Result<Payload, frank_jwt::Error>;
+    fn verify(&self, jwt: &str) -> Result<Payload, biscuit::errors::Error>;
 }

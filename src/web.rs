@@ -1,13 +1,16 @@
 use crate::async_await;
 use crate::domain::model;
 use crate::error::ServiceError;
+use crate::infra;
 use crate::initializer;
+use actix::prelude::*;
 use actix_http::Response;
 use actix_web::{error, web, HttpResponse};
 use futures01::stream::Stream;
 
 #[derive(Clone)]
 pub struct WebContext {
+    pub dbexecutor: Addr<infra::DBExecutor>,
     pub app: initializer::AppContext,
 }
 
@@ -71,6 +74,10 @@ pub fn handlers(cfg: &mut web::ServiceConfig) {
     .service(
         web::resource("/perf/blocking_10")
             .route(web::get().to_async(async_await::wrap2(api_blocking))),
+    )
+    .service(
+        web::resource("/perf/non_blocking_10")
+            .route(web::get().to_async(async_await::wrap2(api_non_blocking))),
     );
 }
 
@@ -172,7 +179,7 @@ async fn private_api_enable_user_with_password(
 }
 
 async fn api_blocking(
-    payload: web::Payload,
+    _payload: web::Payload,
     context: web::Data<WebContext>,
 ) -> Result<HttpResponse, error::Error> {
     use diesel::prelude::*;
@@ -182,4 +189,34 @@ async fn api_blocking(
         .unwrap();
 
     Ok(Response::Ok().finish())
+}
+
+async fn api_non_blocking(
+    _payload: web::Payload,
+    context: web::Data<WebContext>,
+) -> Result<HttpResponse, error::Error> {
+    futures::compat::Compat01As03::new(context.dbexecutor.send(ApiNonBlocking)).await??;
+
+    Ok(Response::Ok().finish())
+}
+
+pub struct ApiNonBlocking;
+
+impl Message for ApiNonBlocking {
+    type Result = Result<(), ()>;
+}
+
+impl Handler<ApiNonBlocking> for infra::DBExecutor {
+    type Result = Result<(), ()>;
+
+    fn handle(&mut self, _: ApiNonBlocking, _: &mut Self::Context) -> Self::Result {
+        use diesel::prelude::*;
+        let conn = self.get_connection();
+
+        let _ = diesel::sql_query("SELECT sleep(10)")
+            .execute(&conn)
+            .unwrap();
+
+        Ok(())
+    }
 }

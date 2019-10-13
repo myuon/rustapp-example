@@ -17,6 +17,7 @@ mod web;
 mod async_await;
 mod error;
 
+use actix::prelude::*;
 use dotenv::dotenv;
 use std::env;
 
@@ -29,14 +30,23 @@ fn main() -> std::io::Result<()> {
     let database_url = env::var("DATABASE_URL").unwrap();
     let private_key_file = env::var("JWT_PRIVATE_KEY_FILE").unwrap();
 
+    System::new("rustapp");
+
+    let addr = {
+        let database_url = database_url.clone();
+        SyncArbiter::start(5, move || infra::DBExecutor::new(database_url.clone()))
+    };
+
     actix_web::HttpServer::new(move || {
         actix_web::App::new()
             .wrap(actix_web::middleware::Logger::default())
             .data(web::WebContext {
                 app: initializer::new(database_url.clone(), &private_key_file),
+                dbexecutor: addr.clone(),
             })
             .configure(web::handlers)
     })
     .bind("127.0.0.1:8080")?
+    .workers(1) // for local development
     .run()
 }

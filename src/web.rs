@@ -195,28 +195,14 @@ async fn api_non_blocking(
     _payload: web::Payload,
     context: web::Data<WebContext>,
 ) -> Result<HttpResponse, error::Error> {
-    futures::compat::Compat01As03::new(context.dbexecutor.send(ApiNonBlocking)).await??;
+    futures::compat::Compat01As03::new(
+        context
+            .dbexecutor
+            .send(infra::Execute::new("SELECT sleep(10)")),
+    )
+    .await?
+    .map_err(ServiceError::DBError)
+    .map_err(|e| e.to_http_error())?;
 
     Ok(Response::Ok().finish())
-}
-
-pub struct ApiNonBlocking;
-
-impl Message for ApiNonBlocking {
-    type Result = Result<(), ()>;
-}
-
-impl Handler<ApiNonBlocking> for infra::DBExecutor {
-    type Result = Result<(), ()>;
-
-    fn handle(&mut self, _: ApiNonBlocking, _: &mut Self::Context) -> Self::Result {
-        use diesel::prelude::*;
-        let conn = self.get_connection();
-
-        let _ = diesel::sql_query("SELECT sleep(10)")
-            .execute(&conn)
-            .unwrap();
-
-        Ok(())
-    }
 }

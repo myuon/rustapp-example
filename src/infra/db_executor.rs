@@ -25,6 +25,15 @@ pub struct Query<T> {
     phantom: std::marker::PhantomData<T>,
 }
 
+impl<T> Query<T> {
+    pub fn new(query: impl Into<String>) -> Query<T> {
+        Query {
+            query: query.into(),
+            phantom: std::marker::PhantomData,
+        }
+    }
+}
+
 impl<T: 'static> Message for Query<T> {
     type Result = Result<Vec<T>, diesel::result::Error>;
 }
@@ -43,6 +52,12 @@ impl<T: 'static + diesel::deserialize::QueryableByName<diesel::mysql::Mysql>> Ha
 }
 
 pub struct Execute(String);
+
+impl Execute {
+    pub fn new(query: impl Into<String>) -> Execute {
+        Execute(query.into())
+    }
+}
 
 impl Message for Execute {
     type Result = Result<usize, diesel::result::Error>;

@@ -20,22 +20,3 @@ impl MySQLConnPool {
         self.0.get().unwrap()
     }
 }
-
-#[derive(Clone)]
-pub struct DBExecutor(MySQLConnPool);
-
-impl DBExecutor {
-    pub fn new(database_url: String) -> DBExecutor {
-        DBExecutor(MySQLConnPool::new(database_url))
-    }
-
-    pub fn get_connection(
-        &self,
-    ) -> r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::MysqlConnection>> {
-        self.0.get_connection()
-    }
-}
-
-impl Actor for DBExecutor {
-    type Context = SyncContext<Self>;
-}

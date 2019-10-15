@@ -34,7 +34,7 @@ fn main() -> std::io::Result<()> {
 
     let addr = {
         let database_url = database_url.clone();
-        SyncArbiter::start(5, move || infra::DBExecutor::new(database_url.clone()))
+        SyncArbiter::start(3, move || infra::DBExecutor::new(database_url.clone()))
     };
 
     actix_web::HttpServer::new(move || {

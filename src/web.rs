@@ -198,7 +198,7 @@ async fn api_non_blocking(
     futures::compat::Compat01As03::new(
         context
             .dbexecutor
-            .send(infra::Execute::new("SELECT sleep(10)")),
+            .send(infra::SqlQuery::new("SELECT sleep(10)")),
     )
     .await?
     .map_err(ServiceError::DBError)

@@ -12,7 +12,7 @@ r2d2 = "*"
 r2d2_mysql = "16.0.0"
 mysql = "16.1.0"
 futures01 = { version = "0.1.26" }
-futures-preview = { version = "=0.3.0-alpha.19", features = ["async-await", "compat"] }
+futures-preview = { version = "=0.3.0-alpha.19", features = ["io-compat"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ulid = "0.3.1"

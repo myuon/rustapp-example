@@ -1,5 +1,6 @@
 use crate::infra::MySQLConnPool;
 use actix::prelude::*;
+use futures::compat::*;
 
 #[derive(Clone)]
 pub struct DBExecutor(MySQLConnPool);
@@ -43,7 +44,10 @@ impl DBConnector {
         &self,
         query: Q,
     ) -> Result<usize, DBConnectorError> {
-        let rows = futures::compat::Compat01As03::new(self.0.send(Execute::new(query)))
+        let rows = self
+            .0
+            .send(Execute::new(query))
+            .compat()
             .await
             .map_err(DBConnectorError::MailboxError)?
             .map_err(DBConnectorError::DBError)?;
@@ -60,7 +64,10 @@ impl DBConnector {
         Q: diesel::RunQueryDsl<diesel::MysqlConnection>,
         diesel::helper_types::Limit<Q>: diesel::query_dsl::LoadQuery<diesel::MysqlConnection, T>,
     {
-        let result = futures::compat::Compat01As03::new(self.0.send(First::new(query)))
+        let result = self
+            .0
+            .send(First::new(query))
+            .compat()
             .await
             .map_err(DBConnectorError::MailboxError)?
             .map_err(DBConnectorError::DBError)?;
@@ -76,7 +83,10 @@ impl DBConnector {
         Q: diesel::RunQueryDsl<diesel::MysqlConnection>,
         Q: diesel::query_dsl::LoadQuery<diesel::MysqlConnection, T>,
     {
-        let result = futures::compat::Compat01As03::new(self.0.send(Load::new(query)))
+        let result = self
+            .0
+            .send(Load::new(query))
+            .compat()
             .await
             .map_err(DBConnectorError::MailboxError)?
             .map_err(DBConnectorError::DBError)?;
@@ -85,7 +95,10 @@ impl DBConnector {
     }
 
     pub async fn sql_query(&self, query: impl Into<String>) -> Result<usize, DBConnectorError> {
-        let result = futures::compat::Compat01As03::new(self.0.send(SqlQuery::new(query)))
+        let result = self
+            .0
+            .send(SqlQuery::new(query))
+            .compat()
             .await
             .map_err(DBConnectorError::MailboxError)?
             .map_err(DBConnectorError::DBError)?;

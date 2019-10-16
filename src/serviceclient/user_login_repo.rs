@@ -1,6 +1,6 @@
 use crate::domain::interface;
 use crate::domain::model;
-use crate::infra::MySQLConnPool;
+use crate::infra::{DBConnector, DBConnectorError};
 use crate::schema::*;
 use async_trait::async_trait;
 use diesel::dsl::*;
@@ -36,22 +36,24 @@ impl UserLoginRecord {
 }
 
 pub struct UserLoginRepository {
-    db: MySQLConnPool,
+    db: DBConnector,
 }
 
 impl UserLoginRepository {
-    pub fn new(db: MySQLConnPool) -> UserLoginRepository {
+    pub fn new(db: DBConnector) -> UserLoginRepository {
         UserLoginRepository { db: db }
     }
 }
 
 #[async_trait]
 impl interface::IUserLoginRepository for UserLoginRepository {
-    async fn save(&self, user: model::Login) -> Result<(), diesel::result::Error> {
-        let conn = self.db.get_connection();
-        insert_into(user_login_records::table)
-            .values::<UserLoginRecord>(UserLoginRecord::from_model(user))
-            .execute(&conn)?;
+    async fn save(&self, user: model::Login) -> Result<(), DBConnectorError> {
+        self.db
+            .execute(
+                insert_into(user_login_records::table)
+                    .values::<UserLoginRecord>(UserLoginRecord::from_model(user)),
+            )
+            .await?;
 
         Ok(())
     }
@@ -59,21 +61,26 @@ impl interface::IUserLoginRepository for UserLoginRepository {
     async fn get_by_user_name(
         &self,
         user_name: String,
-    ) -> Result<(model::Login, model::User), diesel::result::Error> {
-        let conn = self.db.get_connection();
-        let (user, login) = user_records::table
-            .inner_join(user_login_records::table)
-            .filter(user_records::name.eq(user_name))
-            .first::<(super::user_repo::UserRecord, UserLoginRecord)>(&conn)?;
+    ) -> Result<(model::Login, model::User), DBConnectorError> {
+        let (user, login) = self
+            .db
+            .first::<(super::user_repo::UserRecord, UserLoginRecord), _>(
+                user_records::table
+                    .inner_join(user_login_records::table)
+                    .filter(user_records::name.eq(user_name)),
+            )
+            .await?;
 
         Ok((login.to_model(), user.to_model()))
     }
 
-    async fn get_by_user_id(&self, user_id: String) -> Result<model::Login, diesel::result::Error> {
-        let conn = self.db.get_connection();
-        let record = user_login_records::table
-            .filter(user_login_records::user_id.eq(user_id))
-            .first::<UserLoginRecord>(&conn)?;
+    async fn get_by_user_id(&self, user_id: String) -> Result<model::Login, DBConnectorError> {
+        let record = self
+            .db
+            .first::<UserLoginRecord, _>(
+                user_login_records::table.filter(user_login_records::user_id.eq(user_id)),
+            )
+            .await?;
 
         Ok(record.to_model())
     }

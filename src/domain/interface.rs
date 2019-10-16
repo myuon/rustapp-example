@@ -1,11 +1,12 @@
 use crate::domain::model;
+use crate::infra::DBConnectorError;
 use async_trait::async_trait;
 
 #[async_trait]
 pub trait IUserRepository {
-    async fn get_by_id(&self, user_id: String) -> Result<model::User, diesel::result::Error>;
-    async fn list(&self) -> Result<Vec<model::User>, diesel::result::Error>;
-    async fn save(&self, user: model::User) -> Result<(), diesel::result::Error>;
+    async fn get_by_id(&self, user_id: String) -> Result<model::User, DBConnectorError>;
+    async fn list(&self) -> Result<Vec<model::User>, DBConnectorError>;
+    async fn save(&self, user: model::User) -> Result<(), DBConnectorError>;
 }
 
 #[async_trait]
@@ -13,9 +14,9 @@ pub trait IUserLoginRepository {
     async fn get_by_user_name(
         &self,
         user_name: String,
-    ) -> Result<(model::Login, model::User), diesel::result::Error>;
-    async fn get_by_user_id(&self, user_id: String) -> Result<model::Login, diesel::result::Error>;
-    async fn save(&self, login: model::Login) -> Result<(), diesel::result::Error>;
+    ) -> Result<(model::Login, model::User), DBConnectorError>;
+    async fn get_by_user_id(&self, user_id: String) -> Result<model::Login, DBConnectorError>;
+    async fn save(&self, login: model::Login) -> Result<(), DBConnectorError>;
 }
 
 pub struct Hash(String);

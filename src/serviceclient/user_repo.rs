@@ -1,5 +1,6 @@
+use crate::domain::interface::IUserRepository;
 use crate::domain::model;
-use crate::infra::MySQLConnPool;
+use crate::infra::{DBConnector, DBConnectorError};
 use crate::schema::*;
 use async_trait::async_trait;
 use diesel::dsl::*;
@@ -38,38 +39,37 @@ impl UserRecord {
 }
 
 pub struct UserRepository {
-    db: MySQLConnPool,
+    db: DBConnector,
 }
 
 impl UserRepository {
-    pub fn new(db: MySQLConnPool) -> UserRepository {
+    pub fn new(db: DBConnector) -> UserRepository {
         UserRepository { db: db }
     }
 }
 
 #[async_trait]
-impl crate::domain::interface::IUserRepository for UserRepository {
-    async fn list(&self) -> Result<Vec<model::User>, diesel::result::Error> {
-        let conn = self.db.get_connection();
-        let us = user_records::table.load::<UserRecord>(&conn)?;
-
+impl IUserRepository for UserRepository {
+    async fn list(&self) -> Result<Vec<model::User>, DBConnectorError> {
+        let us = self.db.load::<UserRecord, _>(user_records::table).await?;
         Ok(us.into_iter().map(|r| r.to_model()).collect())
     }
 
-    async fn save(&self, user: model::User) -> Result<(), diesel::result::Error> {
-        let conn = self.db.get_connection();
-        insert_into(user_records::table)
-            .values::<UserRecord>(UserRecord::from_model(user))
-            .execute(&conn)?;
+    async fn save(&self, user: model::User) -> Result<(), DBConnectorError> {
+        self.db
+            .execute(
+                insert_into(user_records::table).values::<UserRecord>(UserRecord::from_model(user)),
+            )
+            .await?;
 
         Ok(())
     }
 
-    async fn get_by_id(&self, user_id: String) -> Result<model::User, diesel::result::Error> {
-        let conn = self.db.get_connection();
-        let user = user_records::table
-            .filter(user_records::id.eq(user_id))
-            .first::<UserRecord>(&conn)?;
+    async fn get_by_id(&self, user_id: String) -> Result<model::User, DBConnectorError> {
+        let user = self
+            .db
+            .first::<UserRecord, _>(user_records::table.filter(user_records::id.eq(user_id)))
+            .await?;
 
         Ok(user.to_model())
     }

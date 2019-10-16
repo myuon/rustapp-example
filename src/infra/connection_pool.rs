@@ -7,6 +7,7 @@ impl MySQLConnPool {
     pub fn new(database_url: String) -> MySQLConnPool {
         let manager = r2d2::ConnectionManager::<MysqlConnection>::new(database_url);
         let pool = r2d2::Pool::builder()
+            .max_size(15)
             .build(manager)
             .expect("Failed to create pool");
         MySQLConnPool(pool)

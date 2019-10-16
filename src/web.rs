@@ -67,6 +67,10 @@ pub fn handlers(cfg: &mut web::ServiceConfig) {
     .service(
         web::resource("/private/login/{user_id}")
             .route(web::put().to_async(async_await::wrap2(private_api_enable_user_with_password))),
+    )
+    .service(
+        web::resource("/perf/non_blocking")
+            .route(web::get().to_async(async_await::wrap2(api_non_blocking))),
     );
 }
 
@@ -165,4 +169,20 @@ async fn private_api_enable_user_with_password(
         .map_err(|e| e.to_http_error())?;
 
     Ok(Response::Ok().json(res))
+}
+
+async fn api_non_blocking(
+    _payload: web::Payload,
+    context: web::Data<WebContext>,
+) -> Result<HttpResponse, error::Error> {
+    context
+        .app
+        .infras
+        .db
+        .sql_query("SELECT sleep(3)")
+        .await
+        .map_err(ServiceError::DBError)
+        .map_err(|e| e.to_http_error())?;
+
+    Ok(Response::Ok().finish())
 }

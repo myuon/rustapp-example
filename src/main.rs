@@ -32,17 +32,11 @@ fn main() -> std::io::Result<()> {
 
     System::new("rustapp");
 
-    let addr = {
-        let database_url = database_url.clone();
-        SyncArbiter::start(3, move || infra::DBExecutor::new(database_url.clone()))
-    };
-
     actix_web::HttpServer::new(move || {
         actix_web::App::new()
             .wrap(actix_web::middleware::Logger::default())
             .data(web::WebContext {
                 app: initializer::new(database_url.clone(), &private_key_file),
-                dbexecutor: addr.clone(),
             })
             .configure(web::handlers)
     })

@@ -1,4 +1,3 @@
-use actix::prelude::*;
 use diesel::{mysql::MysqlConnection, r2d2};
 
 #[derive(Clone)]

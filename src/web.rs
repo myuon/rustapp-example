@@ -1,16 +1,13 @@
 use crate::async_await;
 use crate::domain::model;
 use crate::error::ServiceError;
-use crate::infra;
 use crate::initializer;
-use actix::prelude::*;
 use actix_http::Response;
 use actix_web::{error, web, HttpResponse};
 use futures01::stream::Stream;
 
 #[derive(Clone)]
 pub struct WebContext {
-    pub dbexecutor: Addr<infra::DBExecutor>,
     pub app: initializer::AppContext,
 }
 
@@ -72,7 +69,7 @@ pub fn handlers(cfg: &mut web::ServiceConfig) {
             .route(web::put().to_async(async_await::wrap2(private_api_enable_user_with_password))),
     )
     .service(
-        web::resource("/perf/non_blocking_10")
+        web::resource("/perf/non_blocking")
             .route(web::get().to_async(async_await::wrap2(api_non_blocking))),
     );
 }
@@ -182,7 +179,7 @@ async fn api_non_blocking(
         .app
         .infras
         .db
-        .sql_query("SELECT sleep(10)")
+        .sql_query("SELECT sleep(3)")
         .await
         .map_err(ServiceError::DBError)
         .map_err(|e| e.to_http_error())?;

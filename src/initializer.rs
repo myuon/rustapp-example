@@ -12,7 +12,7 @@ pub struct Infras {
 }
 
 pub fn infras(database_url: String, private_key: &str) -> Infras {
-    let db = actix::SyncArbiter::start(3, move || infra::DBExecutor::new(database_url.clone()));
+    let db = actix::SyncArbiter::start(5, move || infra::DBExecutor::new(database_url.clone()));
 
     Infras {
         db: infra::DBConnector::new(db),

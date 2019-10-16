@@ -20,6 +20,56 @@ impl Actor for DBExecutor {
     type Context = SyncContext<Self>;
 }
 
+pub struct DBConnector(Addr<DBExecutor>);
+
+#[derive(Fail, Debug)]
+pub enum DBConnectorError {
+    #[fail(display = "DB Error: {}", _0)]
+    DBError(#[fail(cause)] diesel::result::Error),
+
+    #[fail(display = "Actor Error: {}", _0)]
+    MailboxError(#[fail(cause)] actix::MailboxError),
+}
+
+impl DBConnector {
+    pub fn new(conn: Addr<DBExecutor>) -> DBConnector {
+        DBConnector(conn)
+    }
+
+    pub async fn execute<
+        Q: diesel::query_builder::QueryFragment<diesel::mysql::Mysql> + Sync + Send + 'static,
+    >(
+        &self,
+        query: Q,
+    ) -> Result<usize, DBConnectorError> {
+        let rows = futures::compat::Compat01As03::new(self.0.send(Execute::new(query)))
+            .await
+            .map_err(DBConnectorError::MailboxError)?
+            .map_err(DBConnectorError::DBError)?;
+
+        Ok(rows)
+    }
+
+    pub async fn first<T: 'static + Send, Q>(&self, query: Q) -> Result<T, DBConnectorError>
+    where
+        Q: diesel::query_builder::QueryFragment<diesel::mysql::Mysql>
+            + diesel::query_dsl::methods::LimitDsl
+            + Send
+            + 'static,
+    {
+        let result = futures::compat::Compat01As03::new(self.0.send(First::new(query)))
+            .await
+            .map_err(DBConnectorError::MailboxError)?
+            .map_err(DBConnectorError::DBError)?;
+
+        Ok(result)
+    }
+}
+
+// -------------------
+// Message/Handler
+// -------------------
+
 // This is for running "raw" sql query
 pub struct SqlQuery(String);
 
@@ -87,24 +137,16 @@ impl<T: 'static, Q> Message for First<T, Q> {
     type Result = Result<T, diesel::result::Error>;
 }
 
-impl<T, Q> Handler<First<T, Q>> for DBExecutor where
-    T: 'static,
-    T: diesel::Queryable<(), diesel::mysql::Mysql>,
-    Q: diesel::query_builder::QueryFragment<diesel::mysql::Mysql>,
-    Q: diesel::RunQueryDsl<diesel::MysqlConnection>,
-    Q: diesel::query_dsl::limit_dsl::LimitDsl,
-    <Q as diesel::query_dsl::limit_dsl::LimitDsl>::Output: diesel::Table,
-    <Q as diesel::query_dsl::limit_dsl::LimitDsl>::Output: diesel::query_builder::Query,
-    <<Q as diesel::query_dsl::limit_dsl::LimitDsl>::Output as diesel::query_builder::AsQuery>::Query: diesel::query_builder::QueryId,
-    <<Q as diesel::query_dsl::limit_dsl::LimitDsl>::Output as diesel::query_builder::AsQuery>::Query: diesel::query_builder::QueryFragment<diesel::mysql::Mysql>,
-    diesel::mysql::Mysql: diesel::sql_types::HasSqlType<<<Q as diesel::query_dsl::limit_dsl::LimitDsl>::Output as diesel::query_builder::Query>::SqlType>,
-    diesel::mysql::Mysql: diesel::sql_types::HasSqlType<<<Q as diesel::query_dsl::limit_dsl::LimitDsl>::Output as diesel::query_builder::AsQuery>::SqlType>,
-    T: diesel::Queryable<<<Q as diesel::query_dsl::limit_dsl::LimitDsl>::Output as diesel::query_builder::AsQuery>::SqlType, diesel::mysql::Mysql>,
+impl<T, Q, Output> Handler<First<T, Q>> for DBExecutor
+where
+    Q: diesel::query_dsl::methods::LimitDsl<Output = Output>,
 {
     type Result = Result<T, diesel::result::Error>;
 
     fn handle(&mut self, message: First<T, Q>, _: &mut Self::Context) -> Self::Result {
+        use diesel::prelude::*;
+
         let conn = self.get_connection();
-        message.0.first(&conn)
+        message.0.limit(1).get_result(&conn)
     }
 }

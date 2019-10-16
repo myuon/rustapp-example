@@ -20,6 +20,7 @@ impl Actor for DBExecutor {
     type Context = SyncContext<Self>;
 }
 
+#[derive(Clone)]
 pub struct DBConnector(Addr<DBExecutor>);
 
 #[derive(Fail, Debug)]
@@ -57,10 +58,34 @@ impl DBConnector {
     where
         Q: diesel::query_dsl::limit_dsl::LimitDsl,
         Q: diesel::RunQueryDsl<diesel::MysqlConnection>,
-        Q: diesel::query_builder::QueryFragment<diesel::mysql::Mysql>,
         diesel::helper_types::Limit<Q>: diesel::query_dsl::LoadQuery<diesel::MysqlConnection, T>,
     {
         let result = futures::compat::Compat01As03::new(self.0.send(First::new(query)))
+            .await
+            .map_err(DBConnectorError::MailboxError)?
+            .map_err(DBConnectorError::DBError)?;
+
+        Ok(result)
+    }
+
+    pub async fn load<T: 'static + Send, Q: 'static + Send>(
+        &self,
+        query: Q,
+    ) -> Result<Vec<T>, DBConnectorError>
+    where
+        Q: diesel::RunQueryDsl<diesel::MysqlConnection>,
+        Q: diesel::query_dsl::LoadQuery<diesel::MysqlConnection, T>,
+    {
+        let result = futures::compat::Compat01As03::new(self.0.send(Load::new(query)))
+            .await
+            .map_err(DBConnectorError::MailboxError)?
+            .map_err(DBConnectorError::DBError)?;
+
+        Ok(result)
+    }
+
+    pub async fn sql_query(&self, query: impl Into<String>) -> Result<usize, DBConnectorError> {
+        let result = futures::compat::Compat01As03::new(self.0.send(SqlQuery::new(query)))
             .await
             .map_err(DBConnectorError::MailboxError)?
             .map_err(DBConnectorError::DBError)?;
@@ -100,7 +125,7 @@ impl Handler<SqlQuery> for DBExecutor {
 // Do execution and return usize (affected rows)
 pub struct Execute<Q>(Q);
 
-impl<Q: diesel::query_builder::QueryFragment<diesel::mysql::Mysql>> Execute<Q> {
+impl<Q> Execute<Q> {
     pub fn new(query: Q) -> Execute<Q> {
         Execute(query)
     }
@@ -126,11 +151,38 @@ impl<Q: diesel::query_builder::QueryFragment<diesel::mysql::Mysql>> Handler<Exec
     }
 }
 
+// Run query and return the all rows
+// T represents the return type
+pub struct Load<T, Q>(Q, std::marker::PhantomData<T>);
+
+impl<T, Q> Load<T, Q> {
+    pub fn new(query: Q) -> Load<T, Q> {
+        Load(query, std::marker::PhantomData)
+    }
+}
+
+impl<T: 'static, Q> Message for Load<T, Q> {
+    type Result = Result<Vec<T>, diesel::result::Error>;
+}
+
+impl<T: 'static, Q> Handler<Load<T, Q>> for DBExecutor
+where
+    Q: diesel::RunQueryDsl<diesel::MysqlConnection>,
+    Q: diesel::query_dsl::LoadQuery<diesel::MysqlConnection, T>,
+{
+    type Result = Result<Vec<T>, diesel::result::Error>;
+
+    fn handle(&mut self, message: Load<T, Q>, _: &mut Self::Context) -> Self::Result {
+        let conn = self.get_connection();
+        message.0.load(&conn)
+    }
+}
+
 // Run query and return the first row
 // T represents the return type
 pub struct First<T, Q>(Q, std::marker::PhantomData<T>);
 
-impl<T, Q: diesel::query_builder::QueryFragment<diesel::mysql::Mysql>> First<T, Q> {
+impl<T, Q> First<T, Q> {
     pub fn new(query: Q) -> First<T, Q> {
         First(query, std::marker::PhantomData)
     }

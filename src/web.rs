@@ -72,10 +72,6 @@ pub fn handlers(cfg: &mut web::ServiceConfig) {
             .route(web::put().to_async(async_await::wrap2(private_api_enable_user_with_password))),
     )
     .service(
-        web::resource("/perf/blocking_10")
-            .route(web::get().to_async(async_await::wrap2(api_blocking))),
-    )
-    .service(
         web::resource("/perf/non_blocking_10")
             .route(web::get().to_async(async_await::wrap2(api_non_blocking))),
     );
@@ -178,31 +174,18 @@ async fn private_api_enable_user_with_password(
     Ok(Response::Ok().json(res))
 }
 
-async fn api_blocking(
-    _payload: web::Payload,
-    context: web::Data<WebContext>,
-) -> Result<HttpResponse, error::Error> {
-    use diesel::prelude::*;
-    let conn = context.app.infras.conn_pool.get_connection();
-    let _ = diesel::sql_query("SELECT sleep(10)")
-        .execute(&conn)
-        .unwrap();
-
-    Ok(Response::Ok().finish())
-}
-
 async fn api_non_blocking(
     _payload: web::Payload,
     context: web::Data<WebContext>,
 ) -> Result<HttpResponse, error::Error> {
-    futures::compat::Compat01As03::new(
-        context
-            .dbexecutor
-            .send(infra::SqlQuery::new("SELECT sleep(10)")),
-    )
-    .await?
-    .map_err(ServiceError::DBError)
-    .map_err(|e| e.to_http_error())?;
+    context
+        .app
+        .infras
+        .db
+        .sql_query("SELECT sleep(10)")
+        .await
+        .map_err(ServiceError::DBError)
+        .map_err(|e| e.to_http_error())?;
 
     Ok(Response::Ok().finish())
 }

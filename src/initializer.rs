@@ -6,14 +6,16 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Infras {
-    pub conn_pool: infra::MySQLConnPool,
+    pub db: infra::DBConnector,
     pub hash_manager: Arc<infra::HashManager>,
     pub jwt_handler: Arc<infra::JWTHandler>,
 }
 
 pub fn infras(database_url: String, private_key: &str) -> Infras {
+    let db = actix::SyncArbiter::start(3, move || infra::DBExecutor::new(database_url.clone()));
+
     Infras {
-        conn_pool: infra::MySQLConnPool::new(database_url),
+        db: infra::DBConnector::new(db),
         hash_manager: Arc::new(infra::HashManager::new()),
         jwt_handler: Arc::new(infra::JWTHandler::new(private_key)),
     }
@@ -28,10 +30,10 @@ pub struct ServiceClients {
 pub fn serviceclients(infras: &Infras) -> ServiceClients {
     ServiceClients {
         user_repository: Arc::new(serviceclient::user_repo::UserRepository::new(
-            infras.conn_pool.clone(),
+            infras.db.clone(),
         )),
         login_repository: Arc::new(serviceclient::user_login_repo::UserLoginRepository::new(
-            infras.conn_pool.clone(),
+            infras.db.clone(),
         )),
     }
 }

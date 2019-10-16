@@ -1,7 +1,9 @@
+use crate::infra::DBConnectorError;
+
 #[derive(Fail, Debug)]
 pub enum ServiceError {
     #[fail(display = "DB Error: {}", _0)]
-    DBError(#[fail(cause)] diesel::result::Error),
+    DBError(#[fail(cause)] DBConnectorError),
 
     #[fail(display = "Parse Error: {}", _0)]
     ParseError(#[fail(cause)] serde_json::Error),

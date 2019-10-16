@@ -50,12 +50,15 @@ impl DBConnector {
         Ok(rows)
     }
 
-    pub async fn first<T: 'static + Send, Q>(&self, query: Q) -> Result<T, DBConnectorError>
+    pub async fn first<T: 'static + Send, Q: 'static + Send>(
+        &self,
+        query: Q,
+    ) -> Result<T, DBConnectorError>
     where
-        Q: diesel::query_builder::QueryFragment<diesel::mysql::Mysql>
-            + diesel::query_dsl::methods::LimitDsl
-            + Send
-            + 'static,
+        Q: diesel::query_dsl::limit_dsl::LimitDsl,
+        Q: diesel::RunQueryDsl<diesel::MysqlConnection>,
+        Q: diesel::query_builder::QueryFragment<diesel::mysql::Mysql>,
+        diesel::helper_types::Limit<Q>: diesel::query_dsl::LoadQuery<diesel::MysqlConnection, T>,
     {
         let result = futures::compat::Compat01As03::new(self.0.send(First::new(query)))
             .await
@@ -137,16 +140,16 @@ impl<T: 'static, Q> Message for First<T, Q> {
     type Result = Result<T, diesel::result::Error>;
 }
 
-impl<T, Q, Output> Handler<First<T, Q>> for DBExecutor
+impl<T: 'static, Q> Handler<First<T, Q>> for DBExecutor
 where
-    Q: diesel::query_dsl::methods::LimitDsl<Output = Output>,
+    Q: diesel::RunQueryDsl<diesel::MysqlConnection>,
+    Q: diesel::query_dsl::limit_dsl::LimitDsl,
+    diesel::helper_types::Limit<Q>: diesel::query_dsl::LoadQuery<diesel::MysqlConnection, T>,
 {
     type Result = Result<T, diesel::result::Error>;
 
     fn handle(&mut self, message: First<T, Q>, _: &mut Self::Context) -> Self::Result {
-        use diesel::prelude::*;
-
         let conn = self.get_connection();
-        message.0.limit(1).get_result(&conn)
+        message.0.first(&conn)
     }
 }

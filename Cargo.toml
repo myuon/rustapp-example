@@ -24,6 +24,7 @@ env_logger = "0.7.0"
 log = "0.4.8"
 biscuit = "0.3.1"
 ring = "0.16.9"
+debil = { path = "./debil" }
 
 [dependencies.diesel]
 features = ["mysql", "r2d2"]

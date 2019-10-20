@@ -575,6 +575,22 @@ version = "2.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "debil"
+version = "0.1.0"
+dependencies = [
+ "debil-derive 0.1.0",
+]
+
+[[package]]
+name = "debil-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quote 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "derive_more"
 version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1634,6 +1650,7 @@ dependencies = [
  "async-trait 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "bcrypt 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "biscuit 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "debil 0.1.0",
  "diesel 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "dotenv 0.14.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",

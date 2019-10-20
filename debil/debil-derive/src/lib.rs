@@ -4,46 +4,6 @@ use quote::quote;
 use syn::parse::{Parse, ParseStream};
 use syn::{parse_macro_input, DeriveInput, Result};
 
-struct TokenWrapper(proc_macro2::TokenTree);
-
-impl TokenWrapper {
-    fn as_group(&self) -> Option<&proc_macro2::Group> {
-        use proc_macro2::TokenTree::*;
-
-        match &self.0 {
-            Group(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    fn as_ident(&self) -> Option<&proc_macro2::Ident> {
-        use proc_macro2::TokenTree::*;
-
-        match &self.0 {
-            Ident(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    fn as_punct(&self, ch: char) -> Option<&proc_macro2::Punct> {
-        use proc_macro2::TokenTree::*;
-
-        match &self.0 {
-            Punct(v) if v.as_char() == ch => Some(v),
-            _ => None,
-        }
-    }
-
-    fn as_lit(&self) -> Option<&proc_macro2::Literal> {
-        use proc_macro2::TokenTree::*;
-
-        match &self.0 {
-            Literal(v) => Some(v),
-            _ => None,
-        }
-    }
-}
-
 struct TableAttr {
     table_name: String,
 }
@@ -95,36 +55,6 @@ impl Parse for KeyValue {
         })
     }
 }
-
-/*
-fn parse_tokens_into_pairs(stream: proc_macro2::TokenStream) -> Vec<(String, String)> {
-    let mut iter = stream.into_iter();
-    let mut pairs = Vec::new();
-
-    let mut parse_key_value = |iter: &mut proc_macro2::token_stream::IntoIter| {
-        let key_token = TokenWrapper(iter.next()?);
-        let key = key_token.as_ident()?;
-
-        TokenWrapper(iter.next()?).as_punct('=')?;
-
-        let value_token = TokenWrapper(iter.next()?);
-        let value = value_token.as_lit()?;
-
-        pairs.push((format!("{}", key), value));
-
-        Some(())
-    };
-
-    loop {
-        let r = parse_key_value(&mut iter);
-        if r.is_none() {
-            break;
-        }
-    }
-
-    pairs
-}
-*/
 
 #[proc_macro_derive(Record, attributes(sql))]
 pub fn derive_record(input: proc_macro::TokenStream) -> proc_macro::TokenStream {

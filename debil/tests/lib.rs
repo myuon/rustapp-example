@@ -1,7 +1,9 @@
 use debil::*;
 
+type SQLType = Vec<u8>;
+
 #[derive(Record)]
-#[sql(table_name = "ex_1")]
+#[sql(table_name = "ex_1", sql_type = "SQLType")]
 struct Ex1 {
     #[sql(size = 50)]
     field1: String,

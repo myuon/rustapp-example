@@ -1,7 +1,7 @@
 use debil::*;
 
 #[derive(Record)]
-#[sql(table_name = "ex_1", ddd = "foo")]
+#[sql(table_name = "ex_1")]
 struct Ex1 {
     #[sql(size = 50)]
     field1: String,

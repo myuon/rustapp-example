@@ -63,6 +63,23 @@ impl Parse for TableAttrInput {
     }
 }
 
+impl TableAttrInput {
+    fn to_table_attr(self, table_name: String) -> TableAttr {
+        let mut table = TableAttr {
+            table_name: table_name,
+        };
+
+        for attr in self.attrs.into_iter() {
+            match format!("{}", attr.key).as_str() {
+                "table_name" => table.table_name = attr.value.value(),
+                d => panic!("unsupported attribute: {}", d),
+            }
+        }
+
+        table
+    }
+}
+
 struct KeyValue {
     key: proc_macro2::Ident,
     punct: syn::Token![=],
@@ -115,8 +132,10 @@ pub fn derive_record(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
 
     let ident = input.ident;
     let attr_stream = input.attrs[0].tokens.clone();
-    let pairs = syn::parse2::<TableAttrInput>(attr_stream).unwrap();
-    let table_name = pairs.attrs.first().unwrap().value.value();
+    let table_attr = syn::parse2::<TableAttrInput>(attr_stream)
+        .unwrap()
+        .to_table_attr(format!("{}", ident));
+    let table_name = table_attr.table_name;
 
     let expanded = quote! {
         impl SQLTable for #ident {

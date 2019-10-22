@@ -1,6 +1,6 @@
 use debil::*;
 
-#[derive(Table)]
+#[derive(Table, PartialEq, Debug)]
 #[sql(table_name = "ex_1", sql_type = "mysql_async::Value")]
 struct Ex1 {
     #[sql(size = 50)]
@@ -33,4 +33,28 @@ fn it_derives_sql_table() {
             ("aaaa".to_string(), "int".to_string(), Default::default())
         ]
     );
+
+    assert_eq!(
+        ex1.map_to_sql(),
+        vec![
+            ("field1".to_string(), From::from("aaa")),
+            ("aaaa".to_string(), From::from(10))
+        ]
+    );
+
+    let ex2: Ex1 = SQLTable::map_from_sql(
+        vec![
+            ("field1".to_string(), From::from("piyo")),
+            ("aaaa".to_string(), From::from(-10000)),
+        ]
+        .into_iter()
+        .collect(),
+    );
+    assert_eq!(
+        ex2,
+        Ex1 {
+            field1: "piyo".to_string(),
+            aaaa: -10000,
+        }
+    )
 }

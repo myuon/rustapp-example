@@ -1,6 +1,7 @@
 extern crate proc_macro;
 
 use quote::quote;
+use std::collections::HashMap;
 use syn::parse::{Parse, ParseStream};
 use syn::{parse_macro_input, DeriveInput, Result};
 
@@ -39,20 +40,10 @@ impl AttrInput {
 
         for attr in self.attrs.into_iter() {
             match format!("{}", attr.key).as_str() {
-                "table_name" => {
-                    table.table_name = syn::parse2::<Universe>(attr.value)
-                        .unwrap()
-                        .as_str()
-                        .unwrap()
-                }
+                "table_name" => table.table_name = attr.value.as_str().unwrap(),
                 "sql_type" => {
-                    let sql_type = quote::format_ident!(
-                        "{}",
-                        &syn::parse2::<Universe>(attr.value)
-                            .unwrap()
-                            .as_str()
-                            .unwrap()
-                    );
+                    let sql_type =
+                        syn::parse_str::<syn::Type>(&attr.value.as_str().unwrap()).unwrap();
                     table.sql_type = quote! { #sql_type };
                 }
                 d => panic!("unsupported attribute: {}", d),
@@ -62,30 +53,23 @@ impl AttrInput {
         table
     }
 
-    fn to_field_attr(self) -> FieldAttr {
-        let mut field = FieldAttr {
-            size: quote! { None },
-            not_null: quote! { false },
-            unique: quote! { false },
-        };
+    fn to_attr_map(self) -> HashMap<String, Universe> {
+        let mut result = HashMap::new();
 
         for attr in self.attrs.into_iter() {
-            match format!("{}", attr.key).as_str() {
-                "size" => field.size = attr.value,
-                "not_null" => field.not_null = attr.value,
-                "unique" => field.unique = attr.value,
-                d => panic!("unsupported attribute: {}", d),
-            }
+            result.insert(format!("{}", attr.key), attr.value);
         }
 
-        field
+        result
     }
 }
 
+#[derive(Clone)]
 enum Universe {
     VStr(String),
     VI32(i32),
     VBool(bool),
+    VType(syn::Type),
 }
 
 impl Parse for Universe {
@@ -138,7 +122,7 @@ impl Universe {
 struct KeyValue {
     key: proc_macro2::Ident,
     punct: syn::Token![=],
-    value: proc_macro2::TokenStream,
+    value: Universe,
 }
 
 impl Parse for KeyValue {
@@ -151,7 +135,9 @@ impl Parse for KeyValue {
     }
 }
 
-fn get_fields_from_datastruct(data: syn::Data) -> Vec<(proc_macro2::Ident, syn::Type, FieldAttr)> {
+fn get_fields_from_datastruct(
+    data: syn::Data,
+) -> Vec<(proc_macro2::Ident, syn::Type, HashMap<String, Universe>)> {
     let mut result = Vec::new();
 
     match data {
@@ -162,16 +148,12 @@ fn get_fields_from_datastruct(data: syn::Data) -> Vec<(proc_macro2::Ident, syn::
                         name.ident.as_ref().unwrap().clone(),
                         name.ty.clone(),
                         if name.attrs.len() == 0 {
-                            FieldAttr {
-                                size: quote! { None },
-                                not_null: quote! { false },
-                                unique: quote! { false },
-                            }
+                            HashMap::new()
                         } else {
                             // TODO: Only first FieldAttr will be effective
                             syn::parse2::<AttrInput>(name.attrs[0].tokens.clone())
                                 .unwrap()
-                                .to_field_attr()
+                                .to_attr_map()
                         },
                     ));
                 }
@@ -182,6 +164,14 @@ fn get_fields_from_datastruct(data: syn::Data) -> Vec<(proc_macro2::Ident, syn::
     }
 
     result
+}
+
+fn option_to_quote<T: quote::ToTokens>(opt: Option<T>) -> proc_macro2::TokenStream {
+    if opt.is_some() {
+        quote! { Some(#opt) }
+    } else {
+        quote! { None }
+    }
 }
 
 #[proc_macro_derive(Table, attributes(sql))]
@@ -202,17 +192,27 @@ pub fn derive_record(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
         .collect::<Vec<_>>();
     let push_column_schema = field_struct
         .iter()
-        .map(move |(ident, ty, attr)| {
-            let size = &attr.size;
-            let unique = &attr.unique;
-            let not_null = &attr.not_null;
+        .map(move |(ident, ty, attr_map)| {
+            let size_opt = attr_map.get("size").map(|v| v.clone().as_i32().unwrap());
+            let size = option_to_quote(size_opt);
+            let unique = option_to_quote(attr_map.get("unique").map(|v| v.clone().as_bool().unwrap()));
+            let not_null = option_to_quote(attr_map.get("not_null").map(|v| v.clone().as_bool().unwrap()));
+            let size_unopt = size_opt.unwrap_or(0);
 
             quote! {
-                result.push((stringify!(#ident).to_string(), SQLValue::column_type(std::marker::PhantomData::<#ty>), FieldAttribute {
+                result.push((stringify!(#ident).to_string(), SQLValue::column_type(std::marker::PhantomData::<#ty>, #size_unopt), FieldAttribute {
                     size: #size,
                     unique: #unique,
                     not_null: #not_null,
                 }));
+            }
+        })
+        .collect::<Vec<_>>();
+    let record_fields = field_struct
+        .iter()
+        .map(|(ident, _, _)| {
+            quote! {
+                #ident: SQLValue::deserialize(values.get(stringify!(#ident)).unwrap().clone()),
             }
         })
         .collect::<Vec<_>>();
@@ -221,24 +221,30 @@ pub fn derive_record(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
 
     let expanded = quote! {
         impl SQLTable for #ident {
-            type Type = #sql_type;
+            type ValueType = #sql_type;
 
-            fn table_name(&self) -> &'static str {
-                #table_name
+            fn table_name(_: std::marker::PhantomData<Self>) -> String {
+                #table_name.to_string()
             }
 
-            fn schema_of(&self) -> Vec<(String, String, FieldAttribute)> {
-                let result = Vec::new();
+            fn schema_of(_: std::marker::PhantomData<Self>) -> Vec<(String, String, FieldAttribute)> {
+                let mut result = Vec::new();
                 #( #push_column_schema )*
 
                 result
             }
 
-            fn map_to_sql<V: SQLValue<Self::Type>>(self) -> Vec<(String, V)> {
-                let result = Vec::new();
+            fn map_to_sql(self) -> Vec<(String, Self::ValueType)> {
+                let mut result = Vec::new();
                 #( #push_field_names )*
 
                 result
+            }
+
+            fn map_from_sql(values: std::collections::HashMap<String, Self::ValueType>) -> Self {
+                #ident {
+                    #( #record_fields )*
+                }
             }
         }
     };

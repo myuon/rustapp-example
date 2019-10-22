@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 debil-derive = { path = "debil-derive" }
+mysql_async = "0.20.0"

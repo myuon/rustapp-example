@@ -1,9 +1,7 @@
 use debil::*;
 
-type SQLType = Vec<u8>;
-
 #[derive(Table)]
-#[sql(table_name = "ex_1", sql_type = "SQLType")]
+#[sql(table_name = "ex_1", sql_type = "mysql_async::Value")]
 struct Ex1 {
     #[sql(size = 50)]
     field1: String,
@@ -17,5 +15,22 @@ fn it_derives_sql_table() {
         aaaa: 10,
     };
 
-    assert_eq!(ex1.table_name(), "ex_1");
+    assert_eq!(
+        SQLTable::table_name(std::marker::PhantomData::<Ex1>),
+        "ex_1"
+    );
+    assert_eq!(
+        SQLTable::schema_of(std::marker::PhantomData::<Ex1>),
+        vec![
+            (
+                "field1".to_string(),
+                "varchar(50)".to_string(),
+                FieldAttribute {
+                    size: Some(50),
+                    ..Default::default()
+                }
+            ),
+            ("aaaa".to_string(), "int".to_string(), Default::default())
+        ]
+    );
 }
